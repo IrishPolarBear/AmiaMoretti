@@ -18,52 +18,56 @@ using namespace System::IO;
 
 class Start_Up {
 
-	/*Purpose Find default database, if not found then initalize one.*/
+	/*Started off just to initalize the program but morphed into the class that does the sql interfacing*/
+	//class public variables
 	string initialized;
 	sqlite3 *sqldb;
 	int rc;
 
 public:
-	Start_Up();
-	int get_rc();
-	string get_output();
+	Start_Up(); //initializer function
+	int get_rc(); //returns an error catch
+	string get_output(); 
 	string output, errorMessage;
 	int proceduralCode;
-	string initialize(string homedir);
-	int display_table(string table);
-	string create_table(string table, string categories[], int num);
-	string initial_scan(string table, string dir);
-	string add_directory(string dirName);
-	string get_directories(string* returnValue, string* returnValue2);
-	string get_categories(string tableName, string* returnValue);
-	string return_row(string tableName, string key);
-	string return_table(string tableName);
-	string update_value(string tableName, string category, string newValue, string key);
+	string initialize(string homedir); //creates the home directory
+	int display_table(string table); //calls sql function to display the entire table (most likely no in use)
+	string create_table(string table, string categories[], int num); //calls the sql function to create a table
+	string initial_scan(string table, string dir); //function that scans the directory and populates the database
+	string add_directory(string dirName); //adds a new category to the database
+	string get_directories(string* returnValue, string* returnValue2); //returns a list of all of the sql databaes
+	string get_categories(string tableName, string* returnValue); //returns the categories in the sql tble
+	string return_row(string tableName, string key); //returns a row value, so all data for single video
+	string return_table(string tableName); //returns the whole table values
+	string update_value(string tableName, string category, string newValue, string key); //updates specific value in a certain table
 private:
-	static int callback(void *NotUsed, int argc, char **argb, char **azColName);
-	string run_sql(string expression);
-	string findFileType(string original);
-	string findFileName(string original);
-	string getFileDate(HANDLE hObj, LPTSTR fileDate, DWORD dwEror);
-	string getFileSize(WIN32_FIND_DATA file);
-	string filePathConvert(string original);
-	string get_singleValue(string expression, string* returnValue);
-	string run_multipleSql(string expression);
-	string separate_Values(string masterString, string pattern, string* leftValue, string* rightValue);
-	string get_timeDate();
-	string get_rowValue(string expression, string *rowValue);
+	static int callback(void *NotUsed, int argc, char **argb, char **azColName); //runs sql commands, primary one
+	string run_sql(string expression); //runs sql commands, single command
+	string findFileType(string original); //gets the file type  of a video
+	string findFileName(string original); //ges the file name of a video
+	string getFileDate(HANDLE hObj, LPTSTR fileDate, DWORD dwEror); //gets the data added to the hard drive
+	string getFileSize(WIN32_FIND_DATA file); //gets the file size in kbs
+	string filePathConvert(string original); //converts the windows path to programming path so it can be used
+	string get_singleValue(string expression, string* returnValue); //returns a single value
+	string run_multipleSql(string expression); //used to call multiple sql lines
+	string separate_Values(string masterString, string pattern, string* leftValue, string* rightValue); //separates values, method used to store multiple data points
+	string get_timeDate(); //gets current time and date, or moves it
+	string get_rowValue(string expression, string *rowValue); //returns a database row
 };
 
 int Start_Up::get_rc(){
+	//returns the rc function, needs to be eliminated
 	return rc;
 }
 
 string Start_Up::get_output(void){
+	//returns error code for latest sql error. Very useful for debugging
 	errorMessage = sqlite3_errmsg(sqldb);
 	return output;
 }
 
 int Start_Up::callback(void *NotUsed, int argc, char **argv, char **azColName){
+	//sql call back function
 	int i;
 	for (i = 0; i<argc; i++){
 		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -73,6 +77,7 @@ int Start_Up::callback(void *NotUsed, int argc, char **argv, char **azColName){
 }
 
 int Start_Up::display_table(string table){
+	//pretty sure that this can be removed
 	char *sqlcommand, *zErrMsg = 0, *convert;
 	sqlite3_stmt *statement;
 	string expression, closeExpression = "')'",data = "teststring";
@@ -114,6 +119,7 @@ int Start_Up::display_table(string table){
 
 string Start_Up::getFileDate(HANDLE hFile, LPTSTR lpszString, DWORD dwSize)
 {
+	//function that gets the last modified windows date of the file
 	FILETIME ftCreate, ftAccess, ftWrite;
 	SYSTEMTIME stUTC, stLocal;
 	DWORD dwRet;
@@ -138,6 +144,7 @@ string Start_Up::getFileDate(HANDLE hFile, LPTSTR lpszString, DWORD dwSize)
 }
 
 string Start_Up::getFileSize(WIN32_FIND_DATA data){
+	//function gets the size of the video
 	LARGE_INTEGER size;
 	
 	size.LowPart = data.nFileSizeLow;
@@ -147,6 +154,7 @@ string Start_Up::getFileSize(WIN32_FIND_DATA data){
 }
 
 string Start_Up::get_timeDate(){
+	//basically just gets the current date/time and puts it in a nice format
 	string timeString, holder, timeArray[5], compare, returnString, month, holdValue;
 	string monthCompare[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 	string monthNum[12] = { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" };
@@ -185,6 +193,7 @@ string Start_Up::get_timeDate(){
 }
 
 string Start_Up::separate_Values(string masterString, string pattern, string* leftValue, string* rightValue){
+	//function that sepearates database row information, these rows have multiple vaues that are separated by a key and this parses it all
 	string errorCheck = "None", compare = "";
 	char convert;
 	int key = 0, lenString;
@@ -220,16 +229,18 @@ string Start_Up::separate_Values(string masterString, string pattern, string* le
 }
 
 string Start_Up::get_directories(string* returnValue, string* returnValue2){
+	//function that gets all of the sql different directories
 	string expression, errorCheck = "None",dirString,dirTable,directories,leftString="";
 	string getValue = "None", formatString, endString = "", transString, tables;
 	int inSomething;
 
 	expression = "SELECT options FROM options WHERE id = 'extraDir';";
-	errorCheck = get_singleValue(expression, &getValue);
-	directories = "homedir"; 
+	errorCheck = get_singleValue(expression, &getValue); //runs sql command to get stored values
+	directories = "homedir";  //initalizing shit
 	tables = "homedir";
 	if (errorCheck == "None"){
 		errorCheck = separate_Values(getValue, "#$#", &leftString, &endString);
+		//while loop that runs to parse the string into two different strings, one is a key the other is display
 		while ((errorCheck == "None") || (endString != "")){
 			errorCheck = separate_Values(leftString, "#-#", &dirTable, &dirString);
 			directories = directories + "^" + dirString;
@@ -245,12 +256,14 @@ string Start_Up::get_directories(string* returnValue, string* returnValue2){
 			tables = tables + "^" + dirTable;
 		}
 	}
+	//returns the two strings into usable strings
 	*returnValue = directories;
 	*returnValue2 = tables;
 	return errorCheck;
 }
 
 string Start_Up::get_categories(string tableName, string* returnValue){
+	//gets the categories from the sql database, list of categories stored in a row
 	string errorCheck = "None", expression, stringValue = "None";
 	string leftString = "", endString = "", holderString = "", transString;
 
@@ -273,12 +286,14 @@ string Start_Up::get_categories(string tableName, string* returnValue){
 }
 
 string Start_Up::add_directory(string dirName){
+	//adds new directory to the sql database
 	string expression, errorCheck = "None", strInformation;
 	string returnValue = "None";
 
-	expression = "SELECT options FROM options WHERE id='extraDir'";
+	expression = "SELECT options FROM options WHERE id='extraDir'"; //adds the new directory to the options table, so program can use it
 
 	errorCheck = get_singleValue(expression, &returnValue);
+	//either updates or creates a new row for a new directory
 	if ((returnValue != "None")){
 		strInformation = returnValue + dirName + "#-#" + dirName + "#$#";
 		expression = "UPDATE options SET options='" + strInformation + "' WHERE id='extraDir';";
@@ -296,6 +311,7 @@ string Start_Up::add_directory(string dirName){
 }
 
 string Start_Up::return_row(string tableName, string key){
+	//function that returns a row
 	string expression, errorCheck = "None";
 
 	expression = "SELECT * FROM " + tableName + " WHERE ID =" + key;
@@ -305,6 +321,7 @@ string Start_Up::return_row(string tableName, string key){
 }
 
 string Start_Up::update_value(string tableName, string category, string newValue, string key){
+	//updates a single value in sql database
 	string expression, errorCheck = "None";
 
 	expression = "UPDATE " + tableName + " SET " + category + "='" + newValue + "' WHERE ID=" + key;
@@ -353,14 +370,17 @@ string Start_Up::return_table(string tableName){
 		return "None";
 }*/
 string Start_Up::get_singleValue(string expression, string* returnValue){
+	//gets a single value
 	char *sqlcommand;
 	sqlite3_stmt *statement;
 	int res;
 
+	//changes command to char* from string
 	char *convert = new char[expression.length() + 1];
 	strcpy(convert, expression.c_str());
 	sqlcommand = convert;
 	res = sqlite3_prepare(sqldb, sqlcommand, -1, &statement, 0);
+	//runs sql command
 	if (res == SQLITE_OK){
 		res = sqlite3_step(statement);
 	}
@@ -369,6 +389,7 @@ string Start_Up::get_singleValue(string expression, string* returnValue){
 	}
 	delete[] convert;
 	sqlite3_finalize(statement);
+	//returns error, if one exists
 	if (res == SQLITE_ERROR){
 		return sqlite3_errmsg(sqldb);
 	}
@@ -378,6 +399,7 @@ string Start_Up::get_singleValue(string expression, string* returnValue){
 
 }
 string Start_Up::run_sql(string expression){
+	//runs the sql command
 	char *sqlcommand;
 	sqlite3_stmt *statement;
 	int res;
@@ -405,6 +427,7 @@ string Start_Up::run_sql(string expression){
 }
 
 string Start_Up::create_table(string table, string categories[], int num){
+	//creates new directory table
 	string expression, closeExpression = ");";
 	string errorCheck, categoryString = "None";
 
@@ -420,7 +443,7 @@ string Start_Up::create_table(string table, string categories[], int num){
 	//return expression;
 	errorCheck =run_sql(expression);
 	if (errorCheck == "None"){
-		expression = "INSERT INTO " + table + " (type,tags) VALUES ('categories','" + categoryString + "'"+ closeExpression;
+		expression = "INSERT INTO " + table + " (type,tags) VALUES ('categories','" + categoryString + "'"+ closeExpression; 
 		errorCheck = run_sql(expression);
 	}
 	return errorCheck;
@@ -438,6 +461,7 @@ string Start_Up::initialize(string homedir){
 }
 
 string Start_Up::findFileName(string original){
+	//gets the file name
 	int length = original.length(), pos;
 	char compare;
 	string nwString;
@@ -460,6 +484,7 @@ string Start_Up::findFileName(string original){
 }
 
 string Start_Up::findFileType(string original){
+	//gets the file type
 	int length = original.length(), pos;
 	char compare;
 	string nwString;
@@ -481,6 +506,7 @@ string Start_Up::findFileType(string original){
 }
 
 string Start_Up::filePathConvert(string originalPath){
+	//converts the path from user friendly to computer friendl
 	string newPath, compare;
 
 	for (int i = 0; i < originalPath.length(); i++){
@@ -493,6 +519,7 @@ string Start_Up::filePathConvert(string originalPath){
 	return newPath;
 }
 string Start_Up::initial_scan(string table, string dir){
+	//scans the directories for files and then it adds them to the sql database
 	WIN32_FIND_DATA ffd;
 	HANDLE hFind = INVALID_HANDLE_VALUE, hDate = INVALID_HANDLE_VALUE;
 	DWORD dwFileSize;
@@ -506,43 +533,48 @@ string Start_Up::initial_scan(string table, string dir){
 	TCHAR testp[MAX_PATH];
 	string dateFilePath, nonDateFilePath = "c:", curDate;
 
+	//initializes
 	newDir = filePathConvert(dir);
 	TCHAR *param = new TCHAR[newDir.size() + 1];
 	param[newDir.size()] = 0;
 	copy(newDir.begin(), newDir.end(), param);
+	//converting the file path from string to programming usable
 	StringCchCopy(szDir, MAX_PATH, param);
 	StringCchCat(szDir, MAX_PATH, TEXT("\\*"));
-	hFind = FindFirstFile(szDir, &ffd);
+	hFind = FindFirstFile(szDir, &ffd); //searches first file
 	if (INVALID_HANDLE_VALUE == hFind){
 		FindClose(hFind);
 		return "ERROR!";
 	}
 	
-	curDate = get_timeDate();
-	while (FindNextFile(hFind, &ffd) != 0){
+	curDate = get_timeDate(); //gets current system time
+	while (FindNextFile(hFind, &ffd) != 0){ //loop that just grabs files and file data
 		wstring wfile (ffd.cFileName);
 		string file(wfile.begin(), wfile.end());
 		if (file.length() > 4){
-			fType = findFileType(file);
-			fName = findFileName(file);
-			dwFileSize = GetFileSize(hFind, NULL);
-			newDir = dir + "\\" + file;
+			fType = findFileType(file); //gets file type
+			fName = findFileName(file); //gets file name
+			dwFileSize = GetFileSize(hFind, NULL); //gets file size
+			//set of steps for full file and converst string
+			newDir = dir + "\\" + file; 
 			dateFilePath = filePathConvert(newDir);
 			TCHAR *param = new TCHAR[dateFilePath.size() + 1];
 			param[dateFilePath.size()] = 0;
 			copy(dateFilePath.begin(), dateFilePath.end(), param);
+			//starts the steps to get the file date
 			hDate = CreateFile(param, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 			if (INVALID_HANDLE_VALUE == hDate){
 				FindClose(hFind);
 				return "ERROR!" + dir + " || " + newDir + " || " + file;
 			}
-			tbool = getFileDate(hDate, testp, MAX_PATH);
+			tbool = getFileDate(hDate, testp, MAX_PATH); //gets file date
+			//converts it from date type to string
 			wstring wTime(testp);
 			string dateStr(wTime.begin(), wTime.end());
 			convertDate = dateStr;
 			string size = getFileSize(ffd);
 			expression = expression+ "INSERT INTO " + table + " (type, size, date, dateAdded, title) VALUES ('";
-			expression = expression + fType + "', '" + size + "', '" + dateStr + "', '" + curDate + "', '" + fName + "');";
+			expression = expression + fType + "', '" + size + "', '" + dateStr + "', '" + curDate + "', '" + fName + "');"; //sql expression to update database
 			CloseHandle(hDate);
 			errorCheck = run_sql(expression);
 			if (errorCheck != "None")
@@ -556,6 +588,7 @@ string Start_Up::initial_scan(string table, string dir){
 }
 
 string Start_Up::run_multipleSql(string expression){
+	//runs multiple sql commands
 	char *sqlcommand;
 	char *zErrMsg = 0;
 	int res;
@@ -572,6 +605,7 @@ string Start_Up::run_multipleSql(string expression){
 	return errorCheck;
 }
 Start_Up::Start_Up(){
+	//initializes the class and checks for a sql database, if not one it calls program for it to be initialized
 	char *sqlcommand; 
 	char *zErrMsg = 0;
 	string errorCheck = "None";
